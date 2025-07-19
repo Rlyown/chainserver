@@ -44,4 +44,8 @@ func initAPI() {
 	beego.Router("/api/query-contract", &controllers.ApiController{}, "POST:QueryContract")
 
 	beego.Router("/api/get-form-data", &controllers.ApiController{}, "POST:GetFormData")
+
+	// Routers used for CT-Sharing API
+	beego.Router("/api/new-task", &controllers.ApiController{}, "POST:NewTask")
+	beego.Router("/api/new-strategy", &controllers.ApiController{}, "POST:NewStrategy")
 }

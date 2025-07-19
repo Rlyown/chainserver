@@ -31,3 +31,21 @@ type Form struct {
 
 	FormItems []*FormItem `xorm:"varchar(5000)" json:"formItems"`
 }
+
+// ==========================
+// CT-Sharing related structs
+// ==========================
+type UploadFileItem struct {
+	Name        string `json:"name"`
+	Size        int64  `json:"size"`
+	ContentType string `json:"contentType"`
+	URL         string `json:"url"` 
+}
+
+type TaskForm struct {
+	TaskName	string	`xorm:"varchar(100) notnull pk" json:"taskName" valid:"Required"`
+	SecretKey   string	`xorm:"varchar(255)" json:"secretKey" valid:"Required"`
+
+	DataFile    *UploadFileItem `xorm:"json" json:"dataFile"`
+	TaskFile    *UploadFileItem	`xorm:"json" json:"taskFile"`
+}

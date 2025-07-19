@@ -2,7 +2,8 @@ module github.com/casibase/chainserver
 
 go 1.22.0
 
-toolchain go1.23.6
+// toolchain go1.23.6
+toolchain go1.22.4
 
 require (
 	chainmaker.org/chainmaker/pb-go/v2 v2.2.0

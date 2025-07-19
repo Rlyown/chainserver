@@ -1,0 +1,158 @@
+// Copyright 2025 The Casibase Authors. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package controllers
+
+import (
+	"io/ioutil"
+	"mime/multipart"
+	"os"
+	"path/filepath"
+	"encoding/json"
+
+	"github.com/casibase/chainserver/object"
+)
+
+
+// Store uploaded file at '/uploads/tasks/${taskName}'
+func saveUploadedFile(fileHeader *multipart.FileHeader, baseDir string, fileType string) (*object.UploadFileItem, error) {
+	file, err := fileHeader.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	fileExt := filepath.Ext(fileHeader.Filename)
+	newFileName := fileType + fileExt
+	savePath := filepath.Join(baseDir, newFileName)
+
+	if err := ioutil.WriteFile(savePath, fileBytes, 0644); err != nil {
+		return nil, err
+	}
+
+	return &object.UploadFileItem{
+		Name:        fileHeader.Filename,
+		Size:        fileHeader.Size,
+		ContentType: fileHeader.Header.Get("Content-Type"),
+		URL:         "/uploads/" + filepath.Join("tasks", filepath.Base(baseDir), newFileName),
+	}, nil
+}
+
+
+// Launch CT-Sharing task
+func (c *FileUploadController) launchTask(taskDir string, taskForm *object.TaskForm) error {
+	// TODO(shejiarui): hard code here, modify it in test environment
+	scriptPath := "/home/daqi/with-log/CT-Sharing/WASMRuntime_interp/language-bindings/go/samples/start.sh"
+	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
+		return err
+	}
+
+	dataFilePath := filepath.Join(taskDir, "data"+filepath.Ext(taskForm.DataFile.Name))
+	taskFilePath := filepath.Join(taskDir, "task"+filepath.Ext(taskForm.TaskFile.Name))
+
+	cmd := exec.Command(scriptPath, dataFilePath, taskFilePath)
+	cmd.Dir = taskDir
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return err
+	}
+
+	outputStr := strings.TrimSpace(string(output))
+	if outputStr != "" {
+		web.BeeLogger.Info("Task info: %s", outputStr)
+	}
+
+	return nil
+}
+
+
+// NewTask
+// @Title NewTask
+// @Description invoke CT-Sharing to run a new task
+// @Param taskName formData string true "The name of task"
+// @Param secretKey formData string true "The secret key of data"
+// @Param dataFile formData file true "Data file"
+// @Param taskFile formData file true "Task file"
+// @Success 200 {array} object.Form The Response object
+// @router /new-task [post]
+func (c *ApiController) NewTask() {
+	var taskFormObj object.TaskForm
+	err := json.Unmarshal(c.Ctx.Input.RequestBody, &taskFormObj)
+	if err != nil {
+		c.ResponseError(err.Error())
+		return
+	}
+
+	taskName := c.GetString("taskName")
+	secretKey := c.GetString("secretKey")
+
+	// create directory to store uploaded file
+	uploadDir := filepath.Join("uploads", "tasks", taskName)
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		c.ResponseError(fmt.Sprintf("failed to create directory: %s", err.Error()))
+		return
+	}
+
+	// store uploaded data file
+	dataFile, dataFileHeader, err := c.GetFile("dataFile")
+	if err != nil {
+		c.ResponseError(fmt.Sprintf("failed to get data file: %s", err.Error()))
+		return
+	}
+	defer dataFile.Close()
+
+	dataFileItem, err := saveUploadedFile(dataFileHeader, uploadDir, "data")
+	if err != nil {
+		c.ResponseError(fmt.Sprintf("failed to store data file: %s", err.Error()))
+		return
+	}
+
+	// store uploaded task file
+	taskFile, taskFileHeader, err := c.GetFile("taskFile")
+	if err != nil {
+		c.ResponseError(fmt.Sprintf("failed to get task file: %s", err.Error()))
+		return
+	}
+	defer taskFile.Close()
+
+	taskFileItem, err := saveUploadedFile(taskFileHeader, uploadDir, "task")
+	if err != nil {
+		c.ResponseError(fmt.Sprintf("failed to store task file: %s", err.Error()))
+		return
+	}
+
+	// launch CT-Sharing task
+	if err := c.launchTask(uploadDir, taskForm); err != nil {
+		c.ResponseError(fmt.Sprintf("failed to launch task: %s", err.Error()))
+		return
+	}
+	if err != nil {
+		c.ResponseError(err.Error())
+		return
+	}
+
+	taskForm := &object.TaskForm{
+		TaskName:  taskName,
+		SecretKey: secretKey,
+		DataFile:  dataFileItem,
+		TaskFile:  taskFileItem,
+	}
+	c.ResponseOk(taskForm)
+}
