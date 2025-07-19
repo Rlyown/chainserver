@@ -84,3 +84,38 @@ func responseError(ctx *context.Context, error string, data ...interface{}) {
 		panic(err)
 	}
 }
+
+// Store uploaded file
+func saveUploadedFile(fileHeader *multipart.FileHeader, baseDir string, fileType string, uploadType string) (*object.UploadFileItem, error) {
+	file, err := fileHeader.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	fileExt := filepath.Ext(fileHeader.Filename)
+	newFileName := fileType + fileExt
+	savePath := filepath.Join(baseDir, newFileName)
+
+	if err := ioutil.WriteFile(savePath, fileBytes, 0644); err != nil {
+		return nil, err
+	}
+
+	var url
+	if uploadType == "task" {
+		url = "/uploads/" + filepath.Join("tasks", filepath.Base(baseDir), newFileName)
+	} else {
+		url = "/uploads/" + filepath.Join("strategies", filepath.Base(baseDir), newFileName)
+	}
+	return &object.UploadFileItem{
+		Name:        fileHeader.Filename,
+		Size:        fileHeader.Size,
+		ContentType: fileHeader.Header.Get("Content-Type"),
+		URL:         url,
+	}, nil
+}

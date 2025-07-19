@@ -25,36 +25,6 @@ import (
 )
 
 
-// Store uploaded file at '/uploads/tasks/${taskName}'
-func saveUploadedFile(fileHeader *multipart.FileHeader, baseDir string, fileType string) (*object.UploadFileItem, error) {
-	file, err := fileHeader.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	fileBytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-
-	fileExt := filepath.Ext(fileHeader.Filename)
-	newFileName := fileType + fileExt
-	savePath := filepath.Join(baseDir, newFileName)
-
-	if err := ioutil.WriteFile(savePath, fileBytes, 0644); err != nil {
-		return nil, err
-	}
-
-	return &object.UploadFileItem{
-		Name:        fileHeader.Filename,
-		Size:        fileHeader.Size,
-		ContentType: fileHeader.Header.Get("Content-Type"),
-		URL:         "/uploads/" + filepath.Join("tasks", filepath.Base(baseDir), newFileName),
-	}, nil
-}
-
-
 // Launch CT-Sharing task
 func (c *FileUploadController) launchTask(taskDir string, taskForm *object.TaskForm) error {
 	// TODO(shejiarui): hard code here, modify it in test environment
@@ -118,7 +88,7 @@ func (c *ApiController) NewTask() {
 	}
 	defer dataFile.Close()
 
-	dataFileItem, err := saveUploadedFile(dataFileHeader, uploadDir, "data")
+	dataFileItem, err := saveUploadedFile(dataFileHeader, uploadDir, "data", "task")
 	if err != nil {
 		c.ResponseError(fmt.Sprintf("failed to store data file: %s", err.Error()))
 		return
@@ -132,7 +102,7 @@ func (c *ApiController) NewTask() {
 	}
 	defer taskFile.Close()
 
-	taskFileItem, err := saveUploadedFile(taskFileHeader, uploadDir, "task")
+	taskFileItem, err := saveUploadedFile(taskFileHeader, uploadDir, "task", "task")
 	if err != nil {
 		c.ResponseError(fmt.Sprintf("failed to store task file: %s", err.Error()))
 		return

@@ -49,3 +49,9 @@ type TaskForm struct {
 	DataFile    *UploadFileItem `xorm:"json" json:"dataFile"`
 	TaskFile    *UploadFileItem	`xorm:"json" json:"taskFile"`
 }
+
+type StrategyForm struct {
+	StrategyName	string	`xorm:"varchar(100) notnull pk" json:"strategyName" valid:"Required"`
+
+	StrategyFile	*UploadFileItem	`xorm:"json" json:"strategyFile"`
+}
