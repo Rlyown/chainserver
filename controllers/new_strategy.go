@@ -15,72 +15,13 @@
 package controllers
 
 import (
-	"io/ioutil"
-	"mime/multipart"
 	"os"
 	"path/filepath"
 	"encoding/json"
+	"fmt"
 
 	"github.com/casibase/chainserver/object"
 )
-
-
-// Store uploaded file at '/uploads/tasks/${taskName}'
-func saveUploadedFile(fileHeader *multipart.FileHeader, baseDir string, fileType string) (*object.UploadFileItem, error) {
-	file, err := fileHeader.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	fileBytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-
-	fileExt := filepath.Ext(fileHeader.Filename)
-	newFileName := fileType + fileExt
-	savePath := filepath.Join(baseDir, newFileName)
-
-	if err := ioutil.WriteFile(savePath, fileBytes, 0644); err != nil {
-		return nil, err
-	}
-
-	return &object.UploadFileItem{
-		Name:        fileHeader.Filename,
-		Size:        fileHeader.Size,
-		ContentType: fileHeader.Header.Get("Content-Type"),
-		URL:         "/uploads/" + filepath.Join("tasks", filepath.Base(baseDir), newFileName),
-	}, nil
-}
-
-
-// Launch CT-Sharing task
-func (c *FileUploadController) launchTask(taskDir string, taskForm *object.TaskForm) error {
-	// TODO(shejiarui): hard code here, modify it in test environment
-	scriptPath := "/home/daqi/with-log/CT-Sharing/WASMRuntime_interp/language-bindings/go/samples/start.sh"
-	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		return err
-	}
-
-	dataFilePath := filepath.Join(taskDir, "data"+filepath.Ext(taskForm.DataFile.Name))
-	taskFilePath := filepath.Join(taskDir, "task"+filepath.Ext(taskForm.TaskFile.Name))
-
-	cmd := exec.Command(scriptPath, dataFilePath, taskFilePath)
-	cmd.Dir = taskDir
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return err
-	}
-
-	outputStr := strings.TrimSpace(string(output))
-	if outputStr != "" {
-		web.BeeLogger.Info("Task info: %s", outputStr)
-	}
-
-	return nil
-}
 
 
 // NewStrategy

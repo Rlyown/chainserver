@@ -15,18 +15,19 @@
 package controllers
 
 import (
-	"io/ioutil"
-	"mime/multipart"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"encoding/json"
+	"fmt"
+	"strings"
 
 	"github.com/casibase/chainserver/object"
 )
 
 
 // Launch CT-Sharing task
-func (c *FileUploadController) launchTask(taskDir string, taskForm *object.TaskForm) error {
+func launchTask(taskDir string, taskForm *object.TaskForm) error {
 	// TODO(shejiarui): hard code here, modify it in test environment
 	scriptPath := "/home/daqi/with-log/CT-Sharing/WASMRuntime_interp/language-bindings/go/samples/start.sh"
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
@@ -46,7 +47,7 @@ func (c *FileUploadController) launchTask(taskDir string, taskForm *object.TaskF
 
 	outputStr := strings.TrimSpace(string(output))
 	if outputStr != "" {
-		web.BeeLogger.Info("Task info: %s", outputStr)
+		fmt.Printf("Task info: %s\n", outputStr)
 	}
 
 	return nil
@@ -109,12 +110,8 @@ func (c *ApiController) NewTask() {
 	}
 
 	// launch CT-Sharing task
-	if err := c.launchTask(uploadDir, taskForm); err != nil {
+	if err := launchTask(uploadDir, &taskFormObj); err != nil {
 		c.ResponseError(fmt.Sprintf("failed to launch task: %s", err.Error()))
-		return
-	}
-	if err != nil {
-		c.ResponseError(err.Error())
 		return
 	}
 

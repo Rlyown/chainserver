@@ -16,8 +16,12 @@ package controllers
 
 import (
 	"fmt"
+	"io/ioutil"
+	"mime/multipart"
+	"path/filepath"
 
 	"github.com/beego/beego/context"
+	"github.com/casibase/chainserver/object"
 )
 
 type Response struct {
@@ -106,7 +110,7 @@ func saveUploadedFile(fileHeader *multipart.FileHeader, baseDir string, fileType
 		return nil, err
 	}
 
-	var url
+	var url string
 	if uploadType == "task" {
 		url = "/uploads/" + filepath.Join("tasks", filepath.Base(baseDir), newFileName)
 	} else {
