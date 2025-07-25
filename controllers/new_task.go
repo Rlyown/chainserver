@@ -75,7 +75,7 @@ func (c *ApiController) NewTask() {
 	secretKey := c.GetString("secretKey")
 
 	// create directory to store uploaded file
-	uploadDir := filepath.Join("uploads", "tasks", taskName)
+	uploadDir := filepath.Join("/home/data/uploads", "tasks", taskName)
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
 		c.ResponseError(fmt.Sprintf("failed to create directory: %s", err.Error()))
 		return
@@ -89,7 +89,7 @@ func (c *ApiController) NewTask() {
 	}
 	defer dataFile.Close()
 
-	dataFileItem, err := saveUploadedFile(dataFileHeader, uploadDir, "data", "task")
+	dataFileItem, err := saveUploadedFile(dataFileHeader, uploadDir, "data")
 	if err != nil {
 		c.ResponseError(fmt.Sprintf("failed to store data file: %s", err.Error()))
 		return
@@ -103,7 +103,7 @@ func (c *ApiController) NewTask() {
 	}
 	defer taskFile.Close()
 
-	taskFileItem, err := saveUploadedFile(taskFileHeader, uploadDir, "task", "task")
+	taskFileItem, err := saveUploadedFile(taskFileHeader, uploadDir, "task")
 	if err != nil {
 		c.ResponseError(fmt.Sprintf("failed to store task file: %s", err.Error()))
 		return

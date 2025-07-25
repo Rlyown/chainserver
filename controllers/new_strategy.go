@@ -42,7 +42,7 @@ func (c *ApiController) NewStrategy() {
 	strategyName := c.GetString("strategyName")
 
 	// create directory to store uploaded file
-	uploadDir := filepath.Join("uploads", "strategies", strategyName)
+	uploadDir := filepath.Join("/home/data/uploads", "strategies", strategyName)
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
 		c.ResponseError(fmt.Sprintf("failed to create directory: %s", err.Error()))
 		return
@@ -56,7 +56,7 @@ func (c *ApiController) NewStrategy() {
 	}
 	defer strategyFile.Close()
 
-	strategyFileItem, err := saveUploadedFile(strategyFileHeader, uploadDir, "strategy", "strategy")
+	strategyFileItem, err := saveUploadedFile(strategyFileHeader, uploadDir, "strategy")
 	if err != nil {
 		c.ResponseError(fmt.Sprintf("failed to store strategy file: %s", err.Error()))
 		return
