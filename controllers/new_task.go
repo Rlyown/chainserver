@@ -16,39 +16,42 @@ package controllers
 
 import (
 	"os"
-	"os/exec"
+	// "os/exec"
 	"path/filepath"
-	"encoding/json"
+	// "encoding/json"
 	"fmt"
-	"strings"
+	// "strings"
 
 	"github.com/casibase/chainserver/object"
 )
 
 
 // Launch CT-Sharing task
-func launchTask(taskDir string, taskForm *object.TaskForm) error {
+func launchTask(taskDir string, datafileExt string, taskfileExt string) error {
 	// TODO(shejiarui): hard code here, modify it in test environment
-	scriptPath := "/home/daqi/with-log/CT-Sharing/WASMRuntime_interp/language-bindings/go/samples/start.sh"
+	scriptPath := "/home/data/with-chainmaker/CT-Sharing/WASMRuntime_interp/language-bindings/go/samples/start.sh"
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
 		return err
 	}
 
-	dataFilePath := filepath.Join(taskDir, "data"+filepath.Ext(taskForm.DataFile.Name))
-	taskFilePath := filepath.Join(taskDir, "task"+filepath.Ext(taskForm.TaskFile.Name))
+	dataFilePath := filepath.Join(taskDir, "data"+datafileExt)
+	taskFilePath := filepath.Join(taskDir, "task"+taskfileExt)
 
-	cmd := exec.Command(scriptPath, dataFilePath, taskFilePath)
-	cmd.Dir = taskDir
+	fmt.Printf("scriptPath: %s, dataFilePath: %s, taskFilePath: %s\n", 
+				scriptPath, dataFilePath, taskFilePath)
 
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return err
-	}
+	// cmd := exec.Command(scriptPath, dataFilePath, taskFilePath)
+	// cmd.Dir = taskDir
 
-	outputStr := strings.TrimSpace(string(output))
-	if outputStr != "" {
-		fmt.Printf("Task info: %s\n", outputStr)
-	}
+	// output, err := cmd.CombinedOutput()
+	// if err != nil {
+	// 	return err
+	// }
+
+	// outputStr := strings.TrimSpace(string(output))
+	// if outputStr != "" {
+	// 	fmt.Printf("Task info: %s\n", outputStr)
+	// }
 
 	return nil
 }
@@ -64,18 +67,18 @@ func launchTask(taskDir string, taskForm *object.TaskForm) error {
 // @Success 200 {array} object.Form The Response object
 // @router /new-task [post]
 func (c *ApiController) NewTask() {
-	var taskFormObj object.TaskForm
-	err := json.Unmarshal(c.Ctx.Input.RequestBody, &taskFormObj)
-	if err != nil {
-		c.ResponseError(err.Error())
-		return
-	}
+	// var taskFormObj object.TaskForm
+	// err := json.Unmarshal(c.Ctx.Input.RequestBody, &taskFormObj)
+	// if err != nil {
+	// 	c.ResponseError(err.Error())
+	// 	return
+	// }
 
 	taskName := c.GetString("taskName")
 	secretKey := c.GetString("secretKey")
 
 	// create directory to store uploaded file
-	uploadDir := filepath.Join("/home/data/uploads", "tasks", taskName)
+	uploadDir := filepath.Join("/home/data/uploads/tasks", taskName)
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
 		c.ResponseError(fmt.Sprintf("failed to create directory: %s", err.Error()))
 		return
@@ -83,6 +86,7 @@ func (c *ApiController) NewTask() {
 
 	// store uploaded data file
 	dataFile, dataFileHeader, err := c.GetFile("dataFile")
+	datafileExt := filepath.Ext(dataFileHeader.Filename)
 	if err != nil {
 		c.ResponseError(fmt.Sprintf("failed to get data file: %s", err.Error()))
 		return
@@ -97,6 +101,7 @@ func (c *ApiController) NewTask() {
 
 	// store uploaded task file
 	taskFile, taskFileHeader, err := c.GetFile("taskFile")
+	taskfileExt := filepath.Ext(taskFileHeader.Filename)
 	if err != nil {
 		c.ResponseError(fmt.Sprintf("failed to get task file: %s", err.Error()))
 		return
@@ -110,7 +115,7 @@ func (c *ApiController) NewTask() {
 	}
 
 	// launch CT-Sharing task
-	if err := launchTask(uploadDir, &taskFormObj); err != nil {
+	if err := launchTask(uploadDir, datafileExt, taskfileExt); err != nil {
 		c.ResponseError(fmt.Sprintf("failed to launch task: %s", err.Error()))
 		return
 	}
