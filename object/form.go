@@ -44,7 +44,7 @@ type UploadFileItem struct {
 
 type TaskForm struct {
 	TaskName	string	`xorm:"varchar(100) notnull pk" json:"taskName" valid:"Required"`
-	SecretKey   string	`xorm:"varchar(255)" json:"secretKey" valid:"Required"`
+	CryptoPath  string	`xorm:"varchar(255)" json:"cryptoPath" valid:"Required"`
 
 	DataFile    *UploadFileItem `xorm:"json" json:"dataFile"`
 	TaskFile    *UploadFileItem	`xorm:"json" json:"taskFile"`

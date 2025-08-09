@@ -17,7 +17,6 @@ package controllers
 import (
 	"os"
 	"path/filepath"
-	// "encoding/json"
 	"fmt"
 
 	"github.com/casibase/chainserver/object"
@@ -32,13 +31,6 @@ import (
 // @Success 200 {array} object.Form The Response object
 // @router /new-strategy [post]
 func (c *ApiController) NewStrategy() {
-	// var strategyFormObj object.StrategyForm
-	// err := json.Unmarshal(c.Ctx.Input.RequestBody, &strategyFormObj)
-	// if err != nil {
-	// 	c.ResponseError(err.Error())
-	// 	return
-	// }
-
 	strategyName := c.GetString("strategyName")
 
 	// create directory to store uploaded file
