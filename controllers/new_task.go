@@ -15,39 +15,59 @@
 package controllers
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"fmt"
-
+	"io"
+	"strings"
 	"github.com/casibase/chainserver/object"
 )
 
 
 // Launch CT-Sharing task
-func launchTask(taskDir string, datafileExt string, taskfileExt string, cryptoPath string) error {
+func launchTask(taskDir string, dataFilePath string, taskFilePath string) (string, error) {
 	scriptPath := "/home/data/with-chainmaker/CT-Sharing/WASMRuntime_interp/language-bindings/go/samples/start.sh"
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		return err
+		return "", err
 	}
-
+	
+	fmt.Printf("scriptPath: %s\n", scriptPath)
+    	fmt.Printf("dataFilePath: %s\n", dataFilePath)
+    	fmt.Printf("taskFilePath: %s\n", taskFilePath)
+	
+	/*
 	dataFilePath := filepath.Join(taskDir, "data"+datafileExt)
 	taskFilePath := filepath.Join(taskDir, "task"+taskfileExt)
+	*/
 
-	fmt.Printf("scriptPath: %s, dataFilePath: %s, taskFilePath: %s, cryptoPath: %s\n", 
-				scriptPath, dataFilePath, taskFilePath, cryptoPath)
-
-	cmd := exec.Command(scriptPath, dataFilePath, taskFilePath, cryptoPath)
+	cmd := exec.Command(scriptPath, dataFilePath, taskFilePath)
 	cmd.Dir = taskDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	//cmd.Stdout = os.Stdout
+	//cmd.Stderr = os.Stderr
 
+	var outputBuf bytes.Buffer
+	//cmd.Stdout = &outputBuf
+    	//cmd.Stderr = &outputBuf
+	
+	cmd.Stdout = io.MultiWriter(os.Stdout, &outputBuf)
+	cmd.Stderr = io.MultiWriter(os.Stderr, &outputBuf)
+
+	fmt.Printf("Executing command in dir %s: %s\n", cmd.Dir, cmd.String())
 	err := cmd.Run()
+	/*
 	if err != nil {
 		return err
 	}
 
 	return nil
+	*/
+	
+	fmt.Println(outputBuf.String())
+	fmt.Println("error:", err)
+
+	return outputBuf.String(), err
 }
 
 
@@ -62,7 +82,7 @@ func launchTask(taskDir string, datafileExt string, taskfileExt string, cryptoPa
 // @router /new-task [post]
 func (c *ApiController) NewTask() {
 	taskName := c.GetString("taskName")
-	cryptoPath := c.GetString("cryptoPath")
+	//cryptoPath := c.GetString("cryptoPath")
 
 	// create directory to store uploaded file
 	uploadDir := filepath.Join("/home/data/uploads/tasks", taskName)
@@ -88,11 +108,12 @@ func (c *ApiController) NewTask() {
 
 	// store uploaded task file
 	taskFile, taskFileHeader, err := c.GetFile("taskFile")
-	taskfileExt := filepath.Ext(taskFileHeader.Filename)
 	if err != nil {
-		c.ResponseError(fmt.Sprintf("failed to get task file: %s", err.Error()))
-		return
-	}
+                c.ResponseError(fmt.Sprintf("failed to get task file: %s", err.Error()))
+                return
+        }
+	taskfileExt := filepath.Ext(taskFileHeader.Filename)
+	
 	defer taskFile.Close()
 
 	taskFileItem, err := saveUploadedFile(taskFileHeader, uploadDir, "task")
@@ -103,16 +124,50 @@ func (c *ApiController) NewTask() {
 
 	// launch CT-Sharing task
 	taskDir := "/home/data/with-chainmaker/CT-Sharing/WASMRuntime_interp/language-bindings/go/samples"
-	if err := launchTask(taskDir, datafileExt, taskfileExt, cryptoPath); err != nil {
-		c.ResponseError(fmt.Sprintf("failed to launch task: %s", err.Error()))
+	
+	dataFilePath := filepath.Join(uploadDir, "data"+datafileExt)
+	taskFilePath := filepath.Join(uploadDir, "task"+taskfileExt)
+	
+	// get task log
+    taskLog, err := launchTask(taskDir, dataFilePath, taskFilePath)
+	taskLog = strings.ReplaceAll(taskLog, "ERROR: signal: killed\n", "")
+	taskLog = strings.ReplaceAll(taskLog, "ERROR: signal: killed", "")
+	if err != nil {
+	    	c.ResponseError(fmt.Sprintf("failed to launch task: %s\nTask Output:\n%s", err.Error(), taskLog))
+	    	return
+	}
+	
+	fmt.Printf(taskLog)
+
+    // get task result
+    resultDir := "/home/data/with-chainmaker/CT-Sharing/DataUser/"
+	resultFile := filepath.Join(resultDir, "output_datauser.log")
+	
+	resultContent, err := os.ReadFile(resultFile)
+	if err != nil {
+		c.ResponseError(fmt.Sprintf("failed to read result file: %s", err.Error()))
 		return
 	}
+	
+	resultLog := string(resultContent)
+    startMarker := "result:"
+    endMarker := "time3 starts with get the du_ResultPackage and ends with get the result"
+    var taskResult string
+    if s := strings.Index(resultLog, startMarker); s >= 0 {
+        s += len(startMarker)
+        if e := strings.Index(resultLog[s:], endMarker); e >= 0 {
+            taskResult = strings.TrimSpace(resultLog[s : s+e])
+        } else {
+            taskResult = strings.TrimSpace(resultLog[s:])
+        }
+    }
 
 	taskForm := &object.TaskForm{
 		TaskName:   taskName,
-		CryptoPath: cryptoPath,
 		DataFile:   dataFileItem,
 		TaskFile:   taskFileItem,
+        TaskResult: taskResult,
+		TaskLog:    taskLog,
 	}
 	c.ResponseOk(taskForm)
 }
