@@ -28,6 +28,7 @@ func main() {
 	beego.BConfig.RunMode = "dev"
 
 	beego.SetStaticPath("/swagger", "swagger")
+	beego.SetStaticPath("/ui", "web")
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS"},
