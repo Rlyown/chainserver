@@ -121,13 +121,12 @@
         </div>
 
         <div>
-          <label>数据文件 (.txt) 📄</label>
+          <label>数据文件 📄</label>
           <div class="drop" id="dropData">
             <div><strong>拖拽或点击选择文件</strong>
-              <small>仅支持 .txt 文件</small>
             </div>
             <div class="fileinfo" id="dataInfo">未选择文件</div>
-            <input id="dataFile" name="dataFile" type="file" accept=".txt" required>
+            <input id="dataFile" name="dataFile" type="file" required>
           </div>
         </div>
 
@@ -230,8 +229,49 @@
   bindDrop(dropData, dataFile, dataInfo, '.txt', '仅支持 .txt 数据文件');
   bindDrop(dropTask, taskFile, taskInfo, '.wasm', '仅支持 .wasm 任务文件');
 
-  copyResult.addEventListener('click', async () => { try { await navigator.clipboard.writeText(resultBox.value || ''); toast('已复制结果'); } catch {} });
-  copyLog.addEventListener('click', async () => { try { await navigator.clipboard.writeText(logBox.value || ''); toast('已复制日志'); } catch {} });
+  function copyTextFallback(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  let success = false;
+  try {
+    success = document.execCommand('copy');
+  } catch (err) {
+    console.error('execCommand 复制失败:', err);
+  }
+  document.body.removeChild(textarea);
+  return success;
+}
+
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        console.error('navigator.clipboard 复制失败:', err);
+        return copyTextFallback(text);
+      }
+    } else {
+      return copyTextFallback(text);
+    }
+  }
+
+  copyResult.addEventListener('click', async () => {
+    const text = resultBox.value || '';
+    const success = await copyText(text);
+    toast(success ? '已复制结果' : '复制失败，请手动复制');
+  });
+
+  copyLog.addEventListener('click', async () => {
+    const text = logBox.value || '';
+    const success = await copyText(text);
+    toast(success ? '已复制日志' : '复制失败，请手动复制');
+  });
   clearResult.addEventListener('click', () => { resultBox.value = ''; });
   clearLog.addEventListener('click', () => { logBox.value = ''; });
   resetBtn.addEventListener('click', () => { form.reset(); dataInfo.textContent = '未选择文件'; taskInfo.textContent = '未选择文件'; resultBox.value=''; logBox.value=''; });
