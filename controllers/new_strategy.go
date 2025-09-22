@@ -15,48 +15,131 @@
 package controllers
 
 import (
-	"os"
-	"path/filepath"
+	"encoding/json"
 	"fmt"
-
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"github.com/casibase/chainserver/object"
 )
 
-
 // NewStrategy
 // @Title NewStrategy
-// @Description upload a new data usage strategy
-// @Param strategyName formData string true "The name of strategy"
-// @Param strategyFile formData file true "Strategy file"
-// @Success 200 {array} object.Form The Response object
+// @Description Create a new dataset or data usage license
+// @Param operationType formData string true "The type of operation: 'createDataset' or 'createDatasetUsage'"
+// @Param dataFile formData file false "The data file (only for 'createDataset')"
+// @Param datasetId formData string true "The ID of the dataset"
+// @Param description formData string false "The description of the dataset"
+// @Param owner formData string false "The owner/signature of the dataset"
+// @Param expireTime formData string true "The expiration time"
+// @Param usageId formData string false "The ID for the usage license (only for 'createDatasetUsage')"
+// @Param user formData string false "The user for the usage license (only for 'createDatasetUsage')"
+// @Param useCountLeft formData string false "The remaining usage count (only for 'createDatasetUsage')"
+// @Success 200 {object} object.Response The Response object
 // @router /new-strategy [post]
 func (c *ApiController) NewStrategy() {
-	strategyName := c.GetString("strategyName")
-
-	// create directory to store uploaded file
-	uploadDir := filepath.Join("/home/data/uploads", "strategies", strategyName)
-	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		c.ResponseError(fmt.Sprintf("failed to create directory: %s", err.Error()))
+	operationType := c.GetString("operationType")
+	if operationType == "" {
+		c.ResponseError("operationType is required")
 		return
 	}
 
-	// store uploaded strategy file
-	strategyFile, strategyFileHeader, err := c.GetFile("strategyFile")
+	// The path to the shell script
+	scriptPath := "/home/data/with-chainmaker/CT-Sharing/Strategy/run_strategy.sh" 
+
+	var cmd *exec.Cmd
+	var args []string
+
+	switch operationType {
+	case "createDataset":
+		datasetId := c.GetString("datasetId")
+		description := c.GetString("description")
+		owner := c.GetString("owner")
+		expireTime := c.GetString("expireTime")
+
+		if datasetId == "" || owner == "" || expireTime == "" {
+			c.ResponseError("For createDataset, 'datasetId', 'owner', and 'expireTime' are required.")
+			return
+		}
+
+		dataFile, dataFileHeader, err := c.GetFile("dataFile")
+		if err != nil {
+			c.ResponseError(fmt.Sprintf("failed to get data file: %s", err.Error()))
+			return
+		}
+		defer dataFile.Close()
+
+		uploadDir := filepath.Join("/home/data/uploads/datasets", datasetId)
+		if err := os.MkdirAll(uploadDir, 0755); err != nil {
+			c.ResponseError(fmt.Sprintf("failed to create directory: %s", err.Error()))
+			return
+		}
+
+		_, err = saveUploadedFile(dataFileHeader, uploadDir, "data")
+		if err != nil {
+			c.ResponseError(fmt.Sprintf("failed to store data file: %s", err.Error()))
+			return
+		}
+		dataFilePath := filepath.Join(uploadDir, "data.json")
+
+		args = []string{scriptPath, "createDataset", datasetId, description, dataFilePath, owner, expireTime}
+		cmd = exec.Command(args[0], args[1:]...)
+
+	case "createDatasetUsage":
+		usageId := c.GetString("usageId")
+		datasetId := c.GetString("datasetId")
+		expireTime := c.GetString("expireTime")
+		user := c.GetString("user")
+		useCountLeft := c.GetString("useCountLeft")
+
+		if usageId == "" || datasetId == "" || expireTime == "" || user == "" || useCountLeft == "" {
+			c.ResponseError("For createDatasetUsage, all parameters are required.")
+			return
+		}
+		args = []string{scriptPath, "createDatasetUsage", usageId, datasetId, expireTime, user, useCountLeft}
+		cmd = exec.Command(args[0], args[1:]...)
+
+	default:
+		c.ResponseError(fmt.Sprintf("Unsupported operationType: %s", operationType))
+		return
+	}
+
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		c.ResponseError(fmt.Sprintf("failed to get strategy file: %s", err.Error()))
-		return
-	}
-	defer strategyFile.Close()
-
-	strategyFileItem, err := saveUploadedFile(strategyFileHeader, uploadDir, "strategy")
-	if err != nil {
-		c.ResponseError(fmt.Sprintf("failed to store strategy file: %s", err.Error()))
+		c.ResponseError(fmt.Sprintf("script execution failed: %s\nOutput:\n%s", err.Error(), string(output)))
 		return
 	}
 
-	strategyForm := &object.StrategyForm{
-		StrategyName:  strategyName,
-		StrategyFile:  strategyFileItem,
+	fmt.Printf("--- Script Output ---\n%s\n---------------------\n", string(output))
+
+	outputStr := string(output)
+	startMarker := "API_RESPONSE_START"
+	endMarker := "API_RESPONSE_END"
+	startIndex := strings.Index(outputStr, startMarker)
+	endIndex := strings.Index(outputStr, endMarker)
+
+	if startIndex == -1 || endIndex == -1 {
+		c.ResponseError(fmt.Sprintf("could not find API response markers in script output:\n%s", outputStr))
+		return
 	}
-	c.ResponseOk(strategyForm)
+
+	jsonStr := outputStr[startIndex+len(startMarker) : endIndex]
+	
+	switch operationType {
+	case "createDataset":
+		var datasetResult object.Dataset
+		if err := json.Unmarshal([]byte(jsonStr), &datasetResult); err != nil {
+			c.ResponseError(fmt.Sprintf("failed to parse Dataset result from script: %s\nJSON String:\n%s", err.Error(), jsonStr))
+			return
+		}
+		c.ResponseOk(datasetResult)
+	case "createDatasetUsage":
+		var usageResult object.DatasetUsage
+		if err := json.Unmarshal([]byte(jsonStr), &usageResult); err != nil {
+			c.ResponseError(fmt.Sprintf("failed to parse DatasetUsage result from script: %s\nJSON String:\n%s", err.Error(), jsonStr))
+			return
+		}
+		c.ResponseOk(usageResult)
+	}
 }

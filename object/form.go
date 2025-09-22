@@ -50,8 +50,23 @@ type TaskForm struct {
 	TaskLog     string           `xorm:"text" json:"taskLog"`
 }
 
-type StrategyForm struct {
-	StrategyName	string	`xorm:"varchar(100) notnull pk" json:"strategyName" valid:"Required"`
 
-	StrategyFile	*UploadFileItem	`xorm:"json" json:"strategyFile"`
+// Dataset represents the structure of a dataset object returned by the API
+type Dataset struct {
+	ID          string `json:"ID"`
+	Owner       string `json:"Owner"`
+	CreateTime  string `json:"CreateTime"`
+	Description string `json:"Description"`
+	Digest      string `json:"Digest"`
+	ExpireTime  string `json:"ExpireTime"`
+	Signature   string `json:"Signature"`
+}
+
+// DatasetUsage represents the structure of a dataset usage license returned by the API
+type DatasetUsage struct {
+	UsageID      string `json:"UsageID"`
+	DatasetID    string `json:"DatasetID"`
+	User         string `json:"User"`
+	ExpireTime   string `json:"ExpireTime"`
+	UseCountLeft int    `json:"UseCountLeft"`
 }

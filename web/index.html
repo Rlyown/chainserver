@@ -3,46 +3,118 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>🔒 数据受控使用</title>
+  <title>🛡️ 医疗数据受控使用平台</title>
   <style>
     :root {
-      --bg: #f5f6f8;
-      --fg: #1b1b1b;
-      --muted: #555555;
-      --accent: #2f81f7;
-      --accent-2: #6ca3ff;
-      --border: #dcdcdc;
-      --ok: #1a7f37;
-      --error: #d1242f;
-      --radius: 12px;
+      --bg: #ffffff; /* 主背景为白色 */
+      --panel-bg: #ffffff; /* 面板背景也为白色 */
+      --fg: #333333; /* 文本颜色调整为深灰以提高对比度 */
+      --muted: #6c757d; /* 辅助文本颜色 */
+      --accent: #5734d3;
+      --accent-hover: #6a4ed6;
+      --border: #dee2e6; /* 边框颜色调整为浅灰 */
+      --ok: #28a745;
+      --error: #dc3545;
+      --radius: 8px;
     }
     * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif; margin: 0; color: var(--fg); background: var(--bg); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      margin: 0;
+      color: var(--fg);
+      background: var(--bg);
+      line-height: 1.6;
+    }
 
     .wrap { max-width: 1000px; margin: 0 auto; padding: 24px 16px 40px; }
-    header { display: flex; align-items: center; margin-bottom: 24px; }
-    h1 { font-size: 28px; margin: 0; font-weight: 700; letter-spacing: 0.3px; }
+    header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--border);
+    }
+    h1 { font-size: 28px; margin: 0; font-weight: 700; letter-spacing: 0.3px; color: var(--fg); }
     .sub { color: var(--muted); font-size: 16px; margin-left: 12px; }
 
-    .section { margin-bottom: 28px; }
-    .upload-section { display: grid; gap: 16px; }
+    .intro {
+      background: rgba(87, 52, 211, 0.05);
+      padding: 16px 20px;
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+      /* border-left: 4px solid var(--accent);  <-- 已移除此行 */
+    }
+    .intro h3 {
+      margin-top: 0;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+    }
+    .intro h3:before {
+      content: "ℹ️";
+      margin-right: 8px;
+    }
+    .intro ul {
+      margin: 12px 0;
+      padding-left: 20px;
+    }
+    .intro li {
+      margin-bottom: 8px;
+    }
+
+    .section {
+      margin-bottom: 28px;
+      position: relative;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .section-number {
+      background: var(--accent);
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      font-weight: bold;
+    }
     form { display: grid; gap: 14px; }
 
-    label { font-weight: 600; font-size: 16px; margin-bottom: 6px; display: block; }
-    input[type="text"] { width: 100%; background: #f9f9f9; border: 1px solid var(--border); color: var(--fg); padding: 10px 14px; border-radius: var(--radius); }
+    label { font-weight: 600; font-size: 16px; margin-bottom: 6px; display: block; color: var(--fg); }
+    input[type="text"], textarea {
+      width: 100%;
+      background: #f8f9fa;
+      border: 1px solid var(--border);
+      color: var(--fg);
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input[type="text"]:focus, textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px rgba(87, 52, 211, 0.2);
+    }
     input[type="file"] { display: none; }
 
     .drop {
       position: relative;
-      border: 2px dashed #999;
-      background: #fafafa;
+      border: 2px dashed var(--border);
+      background: #f8f9fa;
       border-radius: var(--radius);
       padding: 16px;
       cursor: pointer;
       transition: 0.3s border-color, 0.3s background;
     }
-    .drop:hover { border-color: var(--accent); background: #e6f0ff; }
-    .drop.dragover { border-color: var(--accent-2); background: #cce0ff; }
+    .drop strong { color: var(--fg); }
+    .drop:hover { border-color: var(--accent); background: rgba(87, 52, 211, 0.05); }
+    .drop.dragover { border-style: solid; border-color: var(--accent-hover); background: rgba(87, 52, 211, 0.1); }
     .drop small { color: var(--muted); display: block; margin-top: 4px; font-size: 14px; }
     .fileinfo { margin-top: 6px; font-size: 14px; color: var(--fg); opacity: 0.8; }
 
@@ -56,40 +128,60 @@
       border: none;
       cursor: pointer;
       color: #fff;
-      background: linear-gradient(180deg, var(--accent), var(--accent-2));
-      transition: transform 0.2s, box-shadow 0.2s;
+      background: var(--accent);
+      transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
     }
-    button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-    button.ghost { background: transparent; border: 1px solid var(--border); color: var(--fg); box-shadow: none; }
-    button:disabled { opacity: 0.7; cursor: not-allowed; }
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      background: var(--accent-hover);
+    }
+    button.ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--fg);
+      box-shadow: none;
+    }
+    button.ghost:hover:not(:disabled) {
+        background: rgba(87, 52, 211, 0.05);
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    .panel-container { display: grid; grid-template-columns: 1fr; gap: 20px; }
-    .sections-grid { display: grid; grid-template-columns: 1fr; gap: 24px; align-items: start; }
-    .panel { background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
-    .panel h2 { font-size: 20px; margin: 0 0 14px; color: var(--accent); display: flex; align-items: center; justify-content: space-between; font-weight: 700; }
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+    .panel h2 {
+      font-size: 20px;
+      margin: 0 0 14px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+    }
     .panel .tools { display: flex; gap: 8px; }
     .panel .tools button { padding: 6px 10px; font-size: 14px; min-width: auto; }
 
     textarea {
-      width: 100%;
       height: 300px;
       resize: vertical;
-      background: #f9f9f9;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 10px;
       font-family: ui-monospace, Menlo, Consolas, monospace;
       font-size: 15px;
-      color: var(--fg);
+      line-height: 1.5;
     }
 
     .toast {
       position: fixed;
       right: 16px;
       bottom: 16px;
-      background: #fefefe;
-      color: var(--fg);
-      border: 1px solid var(--border);
+      background: var(--accent);
+      color: #fff;
       padding: 12px 16px;
       border-radius: var(--radius);
       box-shadow: 0 6px 16px rgba(0,0,0,0.2);
@@ -97,7 +189,21 @@
       z-index: 999;
     }
 
-    footer { margin-top: 32px; text-align: center; font-size: 15px; color: var(--muted); }
+    footer {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 15px;
+      color: var(--muted);
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .help-text {
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
     @media(max-width: 1100px) { .sections-grid { grid-template-columns: 1fr; } }
     @media(max-width: 800px) { .sections-grid { grid-template-columns: 1fr; } }
   </style>
@@ -105,71 +211,100 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>🔒 数据受控使用</h1>
-    <div class="sub">安全上传数据文件与任务文件，确保受控计算</div>
+    <h1>🛡️ 医疗数据受控使用平台</h1>
+    <div class="sub">安全上传与分析临床数据，确保合规使用</div>
   </header>
+
+  <div class="intro">
+    <h3>平台使用说明</h3>
+    <p>本平台提供安全的医疗数据分析环境，支持上传临床数据和预设分析算法，在可信执行环境中执行分析任务，返回计算结果。</p >
+    <ul>
+      <li><strong>临床路径数据</strong>：上传临床路径数据文件</li>
+      <li><strong>分析算法</strong>：上传预设的医疗数据分析算法</li>
+      <li><strong>安全环境</strong>：所有分析在受控环境中执行，确保数据安全</li>
+      <li><strong>结果导出</strong>：分析完成后可复制结果</li>
+    </ul>
+  </div>
 
   <div class="sections-grid">
     <div class="section panel">
-      <h2>1. 任务提交
-        <span class="tools"></span>
-      </h2>
+      <div class="section-header">
+        <div class="section-number">1</div>
+        <h2>分析任务提交
+          <span class="tools"></span>
+        </h2>
+      </div>
       <form id="taskForm">
         <div>
-          <label for="taskName">任务名称 📝</label>
-          <input id="taskName" name="taskName" type="text" placeholder="输入任务名称，例如：knn" required>
+          <label for="taskName">分析任务名称 📝</label>
+          <div class="help-text">为您的分析任务命名，便于后续识别和管理</div>
+          <input id="taskName" name="taskName" type="text" placeholder="输入分析任务名称，例如：临床路径相似度分析" required>
+          
         </div>
 
         <div>
-          <label>数据文件 📄</label>
+          <label>临床数据 📄</label>
+          <div class="help-text">上传临床数据，包含患者诊疗过程信息</div>
           <div class="drop" id="dropData">
-            <div><strong>拖拽或点击选择文件</strong>
+            <div><strong>拖拽或点击选择临床数据文件</strong>
+              <small>支持bpmn格式的临床数据</small>
             </div>
             <div class="fileinfo" id="dataInfo">未选择文件</div>
-            <input id="dataFile" name="dataFile" type="file" required>
+            <input id="dataFile" name="dataFile" type="file" accept=".bpmn" required>
           </div>
+          
         </div>
 
         <div>
-          <label>任务文件 (.wasm) ⚙️</label>
+          <label>分析算法模块 ⚙️</label>
+          <div class="help-text">选择预设的分析模块，如临床路径检测等</div>
           <div class="drop" id="dropTask">
-            <div><strong>拖拽或点击选择文件</strong>
-              <small>仅支持 .wasm 文件</small>
+            <div><strong>拖拽或点击选择分析模块</strong>
+              <small>支持预设的医疗分析算法(.wasm格式)</small>
             </div>
             <div class="fileinfo" id="taskInfo">未选择文件</div>
             <input id="taskFile" name="taskFile" type="file" accept=".wasm" required>
           </div>
+          
         </div>
 
         <div class="actions">
-          <button id="submitBtn" type="submit">提交任务</button>
+          <button id="submitBtn" type="submit">提交分析任务</button>
           <button id="resetBtn" class="ghost" type="button">清空表单</button>
         </div>
       </form>
     </div>
 
     <div class="section panel">
-      <h2>2. 执行结果
-        <span class="tools">
-          <button id="copyResult" class="ghost">复制</button>
-          <button id="clearResult" class="ghost">清空</button>
-        </span>
-      </h2>
-      <textarea id="resultBox" readonly placeholder="计算结果将在这里显示..."></textarea>
+      <div class="section-header">
+        <div class="section-number">2</div>
+        <h2>分析结果
+          <span class="tools">
+            <button style="margin-left:10px" id="copyResult" class="ghost">复制</button>
+            <button id="clearResult" class="ghost">清空</button>
+          </span>
+        </h2>
+      </div>
+      <div class="help-text">分析任务需要10-15s，完成后，结果将显示在此区域。您可以复制结果。</div>
+      <textarea id="resultBox" readonly placeholder="分析结果将在这里显示..."></textarea>
     </div>
 
     <div class="section panel">
-      <h2>3. 执行日志
-        <span class="tools">
-          <button id="copyLog" class="ghost">复制</button>
-          <button id="clearLog" class="ghost">清空</button>
-        </span>
-      </h2>
+      <div class="section-header">
+        <div class="section-number">3</div>
+        <h2>执行日志
+          <span class="tools">
+            <button style="margin-left:10px" id="copyLog" class="ghost">复制</button>
+            <button id="clearLog" class="ghost">清空</button>
+          </span>
+        </h2>
+      </div>
+      <div class="help-text">记录分析任务的执行过程和信息，便于追踪和调试。</div>
       <textarea id="logBox" readonly placeholder="执行日志将在这里显示..."></textarea>
     </div>
   </div>
 
-  <footer>接口 /api/new-task </footer>
+  <footer>医疗数据分析平台 - 安全接口 /api/new-task</footer>
 </div>
 
 <div class="toast"></div>
@@ -204,9 +339,12 @@
     el.textContent = `${file.name} · ${size} MB`;
   }
 
-  function accept(ext, file) { return file && file.name.toLowerCase().endsWith(ext); }
+  function accept(exts, file) {
+    if (!file) return false;
+    return exts.split(',').some(ext => file.name.toLowerCase().endsWith(ext));
+  }
 
-  function bindDrop(zone, input, infoEl, ext, errTip) {
+  function bindDrop(zone, input, infoEl, exts, errTip) {
     const dtApply = (file) => {
       const dt = new DataTransfer();
       dt.items.add(file);
@@ -220,32 +358,32 @@
       e.preventDefault(); zone.classList.remove('dragover');
       const file = e.dataTransfer.files && e.dataTransfer.files[0];
       if (!file) return;
-      if (!accept(ext, file)) { toast(errTip); return; }
+      if (!accept(exts, file)) { toast(errTip); return; }
       dtApply(file);
     });
     input.addEventListener('change', () => setFileInfo(infoEl, input.files[0]));
   }
 
-  bindDrop(dropData, dataFile, dataInfo, '.txt', '仅支持 .txt 数据文件');
-  bindDrop(dropTask, taskFile, taskInfo, '.wasm', '仅支持 .wasm 任务文件');
+  bindDrop(dropData, dataFile, dataInfo, '.bpmn', '仅支持BPMN格式的临床数据文件');
+  bindDrop(dropTask, taskFile, taskInfo, '.wasm', '仅支持WASM格式的分析模块');
 
   function copyTextFallback(text) {
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.style.position = 'fixed';
-  textarea.style.left = '-9999px';
-  document.body.appendChild(textarea);
-  textarea.focus();
-  textarea.select();
-  let success = false;
-  try {
-    success = document.execCommand('copy');
-  } catch (err) {
-    console.error('execCommand 复制失败:', err);
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    let success = false;
+    try {
+      success = document.execCommand('copy');
+    } catch (err) {
+      console.error('execCommand 复制失败:', err);
+    }
+    document.body.removeChild(textarea);
+    return success;
   }
-  document.body.removeChild(textarea);
-  return success;
-}
 
   async function copyText(text) {
     if (navigator.clipboard && window.isSecureContext) {
@@ -264,54 +402,85 @@
   copyResult.addEventListener('click', async () => {
     const text = resultBox.value || '';
     const success = await copyText(text);
-    toast(success ? '已复制结果' : '复制失败，请手动复制');
+    toast(success ? '已复制分析结果' : '复制失败，请手动复制');
   });
 
   copyLog.addEventListener('click', async () => {
     const text = logBox.value || '';
     const success = await copyText(text);
-    toast(success ? '已复制日志' : '复制失败，请手动复制');
+    toast(success ? '已复制执行日志' : '复制失败，请手动复制');
   });
-  clearResult.addEventListener('click', () => { resultBox.value = ''; });
-  clearLog.addEventListener('click', () => { logBox.value = ''; });
-  resetBtn.addEventListener('click', () => { form.reset(); dataInfo.textContent = '未选择文件'; taskInfo.textContent = '未选择文件'; resultBox.value=''; logBox.value=''; });
+
+  clearResult.addEventListener('click', () => {
+    if (confirm('确定要清空分析结果吗？')) {
+      resultBox.value = '';
+      toast('已清空分析结果');
+    }
+  });
+
+  clearLog.addEventListener('click', () => {
+    if (confirm('确定要清空执行日志吗？')) {
+      logBox.value = '';
+      toast('已清空执行日志');
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (confirm('确定要清空整个表单吗？')) {
+      form.reset();
+      dataFile.value = ''; /* 确保文件输入也被重置 */
+      taskFile.value = '';
+      dataInfo.textContent = '未选择文件';
+      taskInfo.textContent = '未选择文件';
+      resultBox.value='';
+      logBox.value='';
+      toast('已清空表单');
+    }
+  });
 
   let isSubmitting = false;
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (isSubmitting) { return; }
-    if (!dataFile.files[0] || !taskFile.files[0]) { toast('请先选择文件'); return; }
+    if (!dataFile.files[0] || !taskFile.files[0]) { toast('请先选择临床数据文件和分析模块'); return; }
 
     isSubmitting = true;
     submitBtn.disabled = true;
     resetBtn.disabled = true;
-    submitBtn.textContent = '正在执行中…';
+    submitBtn.textContent = '分析执行中…';
     resultBox.value = '';
     logBox.value = '';
 
     try {
       const formData = new FormData(form);
+      // 添加医疗数据标记
+      formData.append('dataType', 'medical');
+
+      logBox.value = '开始执行临床数据分析任务...\n';
+
       const resp = await fetch('/api/new-task', { method: 'POST', body: formData });
       const data = await resp.json().catch(() => ({}));
+
       if (data.status !== 'ok') {
-        const msg = data.msg || '请求失败';
+        const msg = data.msg || '分析任务执行失败';
         const errLog = (data.data && typeof data.data === 'string') ? data.data : '';
-        logBox.value = msg + (errLog ? ('\n\n' + errLog) : '');
-        toast('提交失败');
+        logBox.value += `错误: ${msg}` + (errLog ? ('\n\n' + errLog) : '');
+        toast('分析任务失败');
       } else {
         const task = data.data || {};
         resultBox.value = task.taskResult || '';
-        logBox.value = task.taskLog || '';
-        toast('任务完成 ✅');
+        logBox.value += task.taskLog || '分析完成';
+        toast('分析任务完成 ✅');
       }
     } catch (err) {
-      toast('网络错误');
+      logBox.value += `网络错误: ${err.message}`;
+      toast('网络连接错误，请重试');
     } finally {
       isSubmitting = false;
       submitBtn.disabled = false;
       resetBtn.disabled = false;
-      submitBtn.textContent = '提交任务';
+      submitBtn.textContent = '提交分析任务';
     }
   });
 </script>
