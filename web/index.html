@@ -243,18 +243,28 @@
         </div>
 
         <div>
-          <label>临床数据 📄</label>
-          <div class="help-text">上传临床数据，包含患者诊疗过程信息</div>
-          <div class="drop" id="dropData">
-            <div><strong>拖拽或点击选择临床数据文件</strong>
-              <small>支持bpmn格式的临床数据</small>
+            <label>标准临床路径 📄</label>
+            <div class="help-text">上传作为分析基准的标准临床路径</div>
+            <div class="drop" id="dropStandardPath">
+              <div><strong>拖拽或点击选择标准路径文件</strong>
+                <small>支持bpmn格式的临床数据</small>
+              </div>
+              <div class="fileinfo" id="standardPathInfo">未选择文件</div>
+              <input id="standardPathFile" name="datafile1" type="file" accept=".bpmn" required>
             </div>
-            <div class="fileinfo" id="dataInfo">未选择文件</div>
-            <input id="dataFile" name="dataFile" type="file" accept=".bpmn" required>
           </div>
-          
-        </div>
-
+  
+          <div>
+            <label>实际临床路径 📄</label>
+            <div class="help-text">上传需要进行分析的实际临床路径</div>
+            <div class="drop" id="dropActualPath">
+              <div><strong>拖拽或点击选择实际路径文件</strong>
+                <small>支持bpmn格式的临床数据</small>
+              </div>
+              <div class="fileinfo" id="actualPathInfo">未选择文件</div>
+              <input id="actualPathFile" name="datafile2" type="file" accept=".bpmn" required>
+            </div>
+          </div>
         <div>
           <label>分析算法模块 ⚙️</label>
           <div class="help-text">选择预设的分析模块，如临床路径检测等</div>
@@ -319,12 +329,20 @@
   const copyLog = document.getElementById('copyLog');
   const clearResult = document.getElementById('clearResult');
   const clearLog = document.getElementById('clearLog');
-  const dropData = document.getElementById('dropData');
+  
+  // ***** START OF SCRIPT MODIFICATION *****
+  // 旧的变量 dropData, dataFile, dataInfo 已被移除
+  // 增加了对两个文件上传框的引用
+  const dropStandardPath = document.getElementById('dropStandardPath');
+  const dropActualPath = document.getElementById('dropActualPath');
   const dropTask = document.getElementById('dropTask');
-  const dataFile = document.getElementById('dataFile');
+  const standardPathFile = document.getElementById('standardPathFile');
+  const actualPathFile = document.getElementById('actualPathFile');
   const taskFile = document.getElementById('taskFile');
-  const dataInfo = document.getElementById('dataInfo');
+  const standardPathInfo = document.getElementById('standardPathInfo');
+  const actualPathInfo = document.getElementById('actualPathInfo');
   const taskInfo = document.getElementById('taskInfo');
+  // ***** END OF SCRIPT MODIFICATION *****
 
   function toast(msg) {
     let t = document.querySelector('.toast');
@@ -364,7 +382,11 @@
     input.addEventListener('change', () => setFileInfo(infoEl, input.files[0]));
   }
 
-  bindDrop(dropData, dataFile, dataInfo, '.bpmn', '仅支持BPMN格式的临床数据文件');
+  // ***** START OF SCRIPT MODIFICATION *****
+  // 为两个新的文件上传框绑定事件
+  bindDrop(dropStandardPath, standardPathFile, standardPathInfo, '.bpmn', '仅支持BPMN格式的临床数据文件');
+  bindDrop(dropActualPath, actualPathFile, actualPathInfo, '.bpmn', '仅支持BPMN格式的临床数据文件');
+  // ***** END OF SCRIPT MODIFICATION *****
   bindDrop(dropTask, taskFile, taskInfo, '.wasm', '仅支持WASM格式的分析模块');
 
   function copyTextFallback(text) {
@@ -428,10 +450,15 @@
   resetBtn.addEventListener('click', () => {
     if (confirm('确定要清空整个表单吗？')) {
       form.reset();
-      dataFile.value = ''; /* 确保文件输入也被重置 */
+      // ***** START OF SCRIPT MODIFICATION *****
+      // 确保所有文件输入都被重置
+      standardPathFile.value = '';
+      actualPathFile.value = '';
       taskFile.value = '';
-      dataInfo.textContent = '未选择文件';
+      standardPathInfo.textContent = '未选择文件';
+      actualPathInfo.textContent = '未选择文件';
       taskInfo.textContent = '未选择文件';
+      // ***** END OF SCRIPT MODIFICATION *****
       resultBox.value='';
       logBox.value='';
       toast('已清空表单');
@@ -443,7 +470,14 @@
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (isSubmitting) { return; }
-    if (!dataFile.files[0] || !taskFile.files[0]) { toast('请先选择临床数据文件和分析模块'); return; }
+    
+    // ***** START OF SCRIPT MODIFICATION *****
+    // 更新表单验证逻辑
+    if (!standardPathFile.files[0] || !actualPathFile.files[0] || !taskFile.files[0]) { 
+      toast('请先选择标准路径、实际路径文件和分析模块'); 
+      return; 
+    }
+    // ***** END OF SCRIPT MODIFICATION *****
 
     isSubmitting = true;
     submitBtn.disabled = true;

@@ -21,6 +21,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"io"
 	"github.com/casibase/chainserver/object"
 )
 
@@ -76,12 +77,20 @@ func (c *ApiController) NewStrategy() {
 			return
 		}
 
-		_, err = saveUploadedFile(dataFileHeader, uploadDir, "data")
+		dataFilePath := filepath.Join(uploadDir, dataFileHeader.Filename)
+
+		destFile, err := os.Create(dataFilePath)
 		if err != nil {
-			c.ResponseError(fmt.Sprintf("failed to store data file: %s", err.Error()))
+			c.ResponseError(fmt.Sprintf("failed to create destination file: %s", err.Error()))
 			return
 		}
-		dataFilePath := filepath.Join(uploadDir, "data.json")
+		defer destFile.Close() 
+
+		if _, err := io.Copy(destFile, dataFile); err != nil {
+			c.ResponseError(fmt.Sprintf("failed to save uploaded file: %s", err.Error()))
+			return
+		}
+
 
 		args = []string{scriptPath, "createDataset", datasetId, description, dataFilePath, owner, expireTime}
 		cmd = exec.Command(args[0], args[1:]...)
